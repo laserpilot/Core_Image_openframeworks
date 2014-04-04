@@ -38,7 +38,12 @@ void ofApp::setup(){
                                            options: nil].autorelease;
     // Setup a Gaussian Blur filter:
     blurFilter = [CIFilter filterWithName:@"CIGaussianBlur"].autorelease;
-    
+    bloomFilter = [CIFilter filterWithName:@"CIBloom"].autorelease;
+    comicFilter = [CIFilter filterWithName:@"CIComicEffect"].autorelease;
+    crystalFilter = [CIFilter filterWithName:@"CICrystallize"].autorelease;
+    edgeFilter =[CIFilter filterWithName:@"CIEdgeWork"].autorelease;
+    hueFilter =[CIFilter filterWithName:@"CIHueAdjust"].autorelease;
+    lineFilter =[CIFilter filterWithName:@"CILineScreen"].autorelease;
 
     
     // Supporting stuff
@@ -46,13 +51,17 @@ void ofApp::setup(){
     inRect = CGRectMake(0,0,outWidth,outHeight);
     outRect = CGRectMake(0,0,outWidth,outHeight);
     
+    //Uncomment to list all possible CI filters on your system
+    /*
     NSArray *properties = [CIFilter filterNamesInCategory:
-                           kCICategoryBuiltIn];
+                           nil];
     NSLog(@"%@", properties);
     for (NSString *filterName in properties) {
         CIFilter *fltr = [CIFilter filterWithName:filterName];
         NSLog(@"%@", [fltr attributes]);
-    }
+    }*/
+    
+    filterNum = 0;
     
 }
 
@@ -63,44 +72,102 @@ void ofApp::update(){
     
     ofSetWindowTitle(ofToString(ofGetFrameRate()));
    
-    sourceFbo.begin();
+
     
-    // For feedback fun, let's not clear the Fbo after the first frame
-    if(ofGetKeyPressed(' ')) {
-        ofClear(0);
-    }
-    // Draw circle
-    ofSetColor(20, 130, 250);
-    ofCircle(outWidth/2,outHeight/2,10+(ofGetFrameNum()%40)*6);
+
     
-    // Get the texture ID of the fbo:
-    tex = sourceFbo.getTextureReference().texData.textureID;
-    // set the CI Image to link with the Fbo texture
-    inputCIImage = [CIImage imageWithTexture:tex
-                                        size:texSize
-                                     flipped:NO
-                                  colorSpace:genericRGB];
-    // Blur filter
-    [blurFilter setValue:inputCIImage forKey:@"inputImage"];
-    [blurFilter setValue:[NSNumber numberWithFloat: 4+4*sin(ofGetElapsedTimef())] forKey:@"inputRadius"];
-    blurredCIImage = [blurFilter valueForKey:@"outputImage"];
-    // Draw it
-    ofSetColor(255);
-    [glCIcontext drawImage:blurredCIImage
-                    inRect:outRect
-                  fromRect:inRect];
+    //[glCIcontext drawImage:filterCIImage inRect:outRect fromRect:inRect];
     
-    sourceFbo.end();
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    sourceFbo.draw(0,0);
+    
+    ofBackground(50);
+    
+    sourceFbo.begin();
+    
+    // For feedback fun, let's not clear the Fbo after the first frame
+    //if(ofGetKeyPressed('c')) {
+        ofClear(0,0,0,255);
+    //}
+    // Draw circle
+    ofSetColor(20, 130, 250);
+    ofNoFill();
+    ofSetLineWidth(40);
+    ofCircle(outWidth/2,outHeight/2,10+(ofGetFrameNum()%40)*6);
+    
+    ofFill();
+    ofSetColor(255);
+    for (int i=0; i<10; i++) {
+        ofSetColor(20*i, 10*i, 250);
+
+        ofRect(ofGetWidth()/2+200*sin(i*0.7+0.5*ofGetElapsedTimef()), ofGetHeight()/2+200*cos(i*0.7+0.5*ofGetElapsedTimef()), 100,100);
+    }
+
+    
+    sourceFbo.end();
+    
+    tex = sourceFbo.getTextureReference().texData.textureID;
+    
+    inputCIImage = [CIImage imageWithTexture:tex
+                                        size:texSize
+                                     flipped:NO
+                                  colorSpace:genericRGB];
+    
+    // Blur filter
+    if(filterNum==0){
+        [blurFilter setValue:inputCIImage forKey:@"inputImage"];
+        [blurFilter setValue:[NSNumber numberWithFloat: ofMap(mouseX,0,ofGetWidth(), 1,20)] forKey:@"inputRadius"];
+        filterCIImage = [blurFilter valueForKey:@"outputImage"];
+    }else if(filterNum==1){
+        [bloomFilter setValue:inputCIImage forKey:@"inputImage"];
+        [bloomFilter setValue:[NSNumber numberWithFloat: 1] forKey:@"inputIntensity"];
+        [bloomFilter setValue:[NSNumber numberWithFloat: 5] forKey:@"inputRadius"];
+        filterCIImage = [bloomFilter valueForKey:@"outputImage"];
+    }else if(filterNum==2){
+        [comicFilter setValue:inputCIImage forKey:@"inputImage"];
+        //[comicFilter setValue:[NSNumber numberWithFloat: 0.5+0.5*sin(0.3*ofGetElapsedTimef())] forKey:@"Intensity"];
+        filterCIImage = [comicFilter valueForKey:@"outputImage"];
+    }
+    else if(filterNum==3){
+        [crystalFilter setValue:inputCIImage forKey:@"inputImage"];
+        [crystalFilter setValue:[NSNumber numberWithFloat: ofMap(mouseX,0,ofGetWidth(), 5,50)] forKey:@"inputRadius"];
+        filterCIImage = [crystalFilter valueForKey:@"outputImage"];
+    }else if(filterNum==4){
+        [edgeFilter setValue:inputCIImage forKey:@"inputImage"];
+        [edgeFilter setValue:[NSNumber numberWithFloat: ofMap(mouseX,0,ofGetWidth(), 0,20)] forKey:@"inputRadius"];
+        filterCIImage = [edgeFilter valueForKey:@"outputImage"];
+    }
+    else if(filterNum==5){
+        [hueFilter setValue:inputCIImage forKey:@"inputImage"];
+        [hueFilter setValue:[NSNumber numberWithFloat: ofMap(mouseX,0,ofGetWidth(), 0,PI)] forKey:@"inputAngle"];
+        filterCIImage = [hueFilter valueForKey:@"outputImage"];
+    }else if(filterNum==6){
+        [lineFilter setValue:inputCIImage forKey:@"inputImage"];
+        [lineFilter setValue:[NSNumber numberWithFloat: ofMap(mouseX,0,ofGetWidth(), 0,PI)] forKey:@"inputAngle"];
+        [lineFilter setValue:[CIVector vectorWithX:ofGetWidth()/2 Y:ofGetHeight()/2] forKey:@"inputCenter"];
+        filterCIImage = [lineFilter valueForKey:@"outputImage"];
+    }
+    // Draw it
+
+    
+    ofSetColor(255);
+    [glCIcontext drawImage:filterCIImage
+                    inRect:outRect
+                  fromRect:inRect];
+    
+    
+    //sourceFbo.draw(0,0);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-
+    if(key==' '){
+        filterNum++;
+        filterNum = filterNum%7;
+    }
 }
 
 //--------------------------------------------------------------

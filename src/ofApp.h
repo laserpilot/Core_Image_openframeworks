@@ -44,11 +44,20 @@ public:
     CIContext*  glCIcontext;
     CIImage*    inputCIImage;
     CIFilter*   blurFilter;
-    CIImage*    blurredCIImage;
+    CIFilter* bloomFilter;
+    CIFilter* comicFilter;
+    CIFilter* crystalFilter;
+    CIFilter* edgeFilter;
+    CIFilter* hueFilter;
+    CIFilter* torusFilter;
+    CIFilter* lineFilter;
+    CIImage*    filterCIImage;
     CGSize      texSize;
     GLint       tex;
     CGRect      outRect;
     CGRect      inRect;
+    
+    int filterNum;
     
     
 };
